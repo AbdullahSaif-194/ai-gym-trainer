@@ -209,11 +209,33 @@ def main():
             unsafe_allow_html=True,
         )
     else:
+        RTC_CONFIGURATION = {
+            "iceServers": [
+                {
+                    "urls": [
+                        "stun:stun.l.google.com:19302",
+                        "stun:stun1.l.google.com:19302",
+                        "stun:stun2.l.google.com:19302",
+                        "stun:global.stun.twilio.com:3478",
+                    ]
+                },
+                {
+                    "urls": [
+                        "turn:openrelay.metered.ca:80",
+                        "turn:openrelay.metered.ca:443",
+                        "turn:openrelay.metered.ca:443?transport=tcp",
+                    ],
+                    "username": "openrelayproject",
+                    "credential": "openrelayproject",
+                },
+            ]
+        }
+
         context = webrtc_streamer(
             key="exercise-analysis",
             mode=WebRtcMode.SENDRECV,
             video_processor_factory=VideoProcessorClass,
-            rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+            rtc_configuration=RTC_CONFIGURATION,
             media_stream_constraints={
                 "video": True,
                 "audio": False
