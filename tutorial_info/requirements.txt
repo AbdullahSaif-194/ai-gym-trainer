@@ -8,3 +8,4 @@ pandas>=2.0.0
 groq>=0.12.0
 gtts>=2.5.0
 python-dotenv>=1.0.0
+python-dotenv
