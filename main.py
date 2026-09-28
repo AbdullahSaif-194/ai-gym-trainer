@@ -35,6 +35,12 @@ def main():
 
     init_db()
 
+    # Pre-warm MediaPipe model in background thread so WebRTC connects in 0.001s
+    if "model_prewarmed" not in st.session_state:
+        st.session_state.model_prewarmed = True
+        import threading
+        threading.Thread(target=VideoProcessorClass.get_or_create_landmarker, daemon=True).start()
+
     if not render_login_wall():
         return 
 
@@ -237,8 +243,12 @@ def main():
             video_processor_factory=VideoProcessorClass,
             rtc_configuration=RTC_CONFIGURATION,
             media_stream_constraints={
-                "video": True,
-                "audio": False
+                "video": {
+                    "width": {"ideal": 640, "max": 1280},
+                    "height": {"ideal": 480, "max": 720},
+                    "frameRate": {"ideal": 30, "max": 30},
+                },
+                "audio": False,
             },
             async_processing=True
         )

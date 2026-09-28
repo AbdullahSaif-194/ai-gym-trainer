@@ -16,24 +16,38 @@ from services.config.workout_config import POSE_CONNECTIONS
 
 
 class VideoProcessorClass(VideoProcessorBase):
+    _cached_landmarker = None
+    _model_init_lock = threading.Lock()
+
+    @classmethod
+    def get_or_create_landmarker(cls):
+        with cls._model_init_lock:
+            if cls._cached_landmarker is None:
+                base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                model_path = os.path.join(base_dir, "ml_models", "pose_landmarker_full.task")
+                if not os.path.exists(model_path):
+                    # Fallback to current working directory
+                    model_path = os.path.join(os.getcwd(), "ml_models", "pose_landmarker_full.task")
+
+                base_option = python.BaseOptions(model_asset_path=model_path)
+                options = vision.PoseLandmarkerOptions(
+                    base_options=base_option,
+                    running_mode=vision.RunningMode.VIDEO,
+                    min_pose_detection_confidence=0.5,
+                    min_pose_presence_confidence=0.5,
+                    min_tracking_confidence=0.5,
+                    output_segmentation_masks=False
+                )
+                cls._cached_landmarker = vision.PoseLandmarker.create_from_options(options)
+            return cls._cached_landmarker
+
     def __init__(self):
         self._lock = threading.Lock()
         self._latest_metrics = None
         self._exercise_type = "Squats"
 
-        model_path = os.path.join(os.getcwd(), "ml_models", "pose_landmarker_full.task")
-        base_option = python.BaseOptions(model_asset_path=model_path)
-
-        options = vision.PoseLandmarkerOptions(
-            base_options=base_option,
-            running_mode=vision.RunningMode.VIDEO,
-            min_pose_detection_confidence=0.5,
-            min_pose_presence_confidence=0.5,
-            min_tracking_confidence=0.5,
-            output_segmentation_masks=False
-        )
-
-        self._landmarker = vision.PoseLandmarker.create_from_options(options)
+        # Use cached landmarker to ensure __init__ completes in 0.001s
+        self._landmarker = self.get_or_create_landmarker()
 
         self._detectors = {
             "Squats": SquatDetector(),
